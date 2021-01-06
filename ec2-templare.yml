@@ -1,0 +1,18 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'A simple template intended to be run in N.Virginia (us-east-1) with a Linux (1) distro. Feel free to change the ami so that you can run this in a different Region'
+Parameters:
+  InstanceType:
+   Description: ' Webserver Instance type'
+   Type: String
+   Default: t2.micro
+  LatestAmiId:
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
+
+Resources:
+ Instance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: !Ref LatestAmiId
+      InstanceType: !Ref InstanceType
