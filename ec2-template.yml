@@ -2,23 +2,47 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: 'A simple template intended to be run in N.Virginia (us-east-1) with a Linux (1) distro. Feel free to change the ami so that you can run this in a different Region'
 Parameters:
-  InstanceType:
+  InstanceType: !FindInMap [EnvironmentToInstanceType, !Ref EnvType, InstanceType]
    Description: ' Webserver Instance type'
    Type: String
    Default: t2.micro
+   #!If [ProdEnv, m1.large, !If UatEnv, m1.small, !If DevEnv, t2.micro]
+
   LatestAmiId:
     Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
     Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
-  EnvironmentType:
-   Description: 'Provide environment name'
-   Type: String
-   Default: prod
-   AllowedValues:
-   - dev
-   - uat
-   - prod
+
+  EnvType:
+    Description: 'Provide environment name'
+    Type: String
+    Default: uat
+    AllowedValues:
+     - dev
+     - uat
+     - prod
+    ConstraintDescription: 'Must specify prod, dev, or test.'
+
+  #Conditions:
+  #  DevEnv: !Equals [!Ref EnvType, 'dev']
+  #  UatEnv: !Equals [!Ref EnvType, 'uat']
+  #  ProdEnv: !Equals [!Ref EnvType, 'prod']
+
+  Mappings:
+  EnvironmentToInstanceType:
+    Dev:
+      InstanceType: t2.nano
+    Uat:
+      InstanceType: t2.micro
+    Prod:
+      InstanceType: t2.small
+          
+
+  IsProduction: !Equals 
+    - !Ref EnvType
+    - prod
+
   EmployeeName:
-   Description: 'Provide environment name'
+   Description: 'Provide employee name'
    Type: String
   Date:
    Description: 'Provide current date'
@@ -28,6 +52,7 @@ Parameters:
 Resources:
  Instance01:
     Type: 'AWS::EC2::Instance'
+    Condition: DevEnv
     Properties:
       ImageId: !Ref LatestAmiId
       InstanceType: !Ref InstanceType
@@ -40,6 +65,7 @@ Resources:
         Value: !Ref Date
  Instance02:
     Type: 'AWS::EC2::Instance'
+    Condition: UatEnv
     Properties:
       ImageId: !Ref LatestAmiId
       InstanceType: !Ref InstanceType
@@ -52,6 +78,7 @@ Resources:
         Value: !Ref Date
  Instance03:
     Type: 'AWS::EC2::Instance'
+    Condition: ProdEnv
     Properties:
       ImageId: !Ref LatestAmiId
       InstanceType: !Ref InstanceType
