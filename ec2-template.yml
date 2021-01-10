@@ -2,11 +2,10 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: 'A simple template intended to be run in N.Virginia (us-east-1) with a Linux (1) distro. Feel free to change the ami so that you can run this in a different Region'
 Parameters:
-  InstanceType: !FindInMap [EnvironmentToInstanceType, !Ref EnvType, InstanceType]
+  InstanceType: 
    Description: ' Webserver Instance type'
    Type: String
    Default: t2.micro
-   #!If [ProdEnv, m1.large, !If UatEnv, m1.small, !If DevEnv, t2.micro]
 
   LatestAmiId:
     Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
@@ -37,9 +36,9 @@ Parameters:
       InstanceType: t2.small
           
 
-  IsProduction: !Equals 
-    - !Ref EnvType
-    - prod
+  #IsProduction: !Equals 
+  #  - !Ref EnvType
+  #  - prod
 
   EmployeeName:
    Description: 'Provide employee name'
