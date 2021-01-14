@@ -1,0 +1,130 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Network Loadbalancer.
+
+Parameters:
+  VPC:
+    Type: String
+    Default: 'NLB-VPC'
+  SUBNETS:
+    Type: String
+    Default: 'NLB-Subnets'
+  SecurityGroup:
+    Type: String
+    Default: 'NLB-SG'
+  WebServers:
+    Type: String
+    Default: 'NLB-EC2Instances'
+
+Resources:
+  NetworkLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: Networkloadbalancer
+      Scheme: internet-facing
+      Subnets:
+       - Fn::ImportValue:
+          !Sub PublicSub-01
+       - Fn::ImportValue:
+          !Sub PublicSub-02
+      Type: network
+      Tags:
+        - Key: Name
+          Value: network-elb
+      # SecurityGroups:
+      #  - Fn::ImportValue:
+      #     !Sub WebServer-SG
+
+  NLBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+      - Type: forward
+        TargetGroupArn:
+         Ref: NLBTargetGroup
+      LoadBalancerArn:
+         Ref: NetworkLoadBalancer
+      Port: '80'
+      Protocol: TCP
+
+  NLBTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      
+      #HealthCheckIntervalSeconds: 30
+      #HealthCheckTimeoutSeconds: 30
+      #HealthyThresholdCount: 2
+      Port: 80
+      Protocol: TCP
+      #UnhealthyThresholdCount: 5
+      VpcId:
+        Fn::ImportValue:
+          !Sub VPCID
+      TargetGroupAttributes:
+      # - Key: stickiness.enabled
+      #   Value: 'true'
+      # - Key: stickiness.type
+      #   Value: lb_cookie
+        - Key: stickiness.lb_cookie.duration_seconds
+          Value: '30'
+      Targets:
+      - Id:
+          Fn::ImportValue:
+            !Sub WebserInstance-01
+        Port: 80
+      - Id:
+          Fn::ImportValue:
+            !Sub WebserInstance-02
+        Port: 80
+
+  LaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties: 
+      LaunchTemplateName: asg-launch-template
+      LaunchTemplateData: 
+        BlockDeviceMappings: 
+          - Ebs:
+              VolumeSize: 50
+              VolumeType: gp3
+              DeleteOnTermination: true
+              Encrypted: true
+            DeviceName: /dev/xvda
+        ImageId: 
+          Fn::ImportValue: 
+            !Sub AmiID
+        InstanceType: 
+          Fn::ImportValue:
+            !Sub WebserInstanceType
+        KeyName: mykey
+        Monitoring: 
+          Enabled: true
+        SecurityGroupIds: 
+         - Fn::ImportValue:
+            !Sub WebServer-SG
+
+  ASG:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      MinSize: '1'
+      MaxSize: '3'
+      DesiredCapacity: '1'
+      HealthCheckGracePeriod: 60
+      LaunchTemplate:
+        LaunchTemplateId: !Ref LaunchTemplate
+        Version: !GetAtt LaunchTemplate.LatestVersionNumber
+      VPCZoneIdentifier:
+           Fn::ImportValue:
+            !Sub PublicSub-01
+           Fn::ImportValue:
+            !Sub PublicSub-02
+      LoadBalancerNames:
+            !Ref NetworkLoadBalancer
+
+
+Outputs:
+  NetworkLoadBalancer:
+    Description: NLB output value
+    Value:
+      Ref: NetworkLoadBalancer
+    Export:
+      Name:
+        !Sub "${AWS::StackName}-NetworkLoadBalancer"
