@@ -68,9 +68,6 @@ Parameters:
     Description: 'The ID of the AMI.'
     Default: /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2
 
-  # VPC:
-  #   Type: String
-  #   Default: 'NLB-VPC'
   SUBNETS:
     Type: String
     Default: 'NLB-Subnets'
@@ -399,9 +396,6 @@ Resources:
       Tags:
         - Key: Name
           Value: network-elb
-      # SecurityGroups:
-      #  - Fn::ImportValue:
-      #     !Sub WebServer-SG
 
   NLBListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
@@ -419,16 +413,12 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
       Name: nlb-tg
-      # HealthCheckIntervalSeconds: 30
-      # HealthCheckTimeoutSeconds: 10
-      # HealthyThresholdCount: 5
       Port: 80
       Protocol: TCP
-      # UnhealthyThresholdCount: 5
       VpcId: !Ref VPC
       TargetGroupAttributes:
-        - Key: stickiness.lb_cookie.duration_seconds
-          Value: '30'
+        - Key: deregistration_delay.timeout_seconds
+          Value: '20'
       Targets:
         - Id:
             !Ref WebserInstance01
@@ -471,8 +461,8 @@ Resources:
       VPCZoneIdentifier:
           - !Ref VPCPrivateSubnet1
           - !Ref VPCPrivateSubnet2
-      # LoadBalancerNames:
-      #       !Ref NetworkLoadBalancer
+      TargetGroupARNs:
+          - !Ref NLBTargetGroup
 
 # Outputs to use in ALB.yml template
 Outputs:

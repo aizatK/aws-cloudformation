@@ -29,10 +29,7 @@ Resources:
       Type: network
       Tags:
         - Key: Name
-          Value: network-elb
-      # SecurityGroups:
-      #  - Fn::ImportValue:
-      #     !Sub WebServer-SG
+          Value: Network-elb
 
   NLBListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
@@ -49,23 +46,15 @@ Resources:
   NLBTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
-      
-      #HealthCheckIntervalSeconds: 30
-      #HealthCheckTimeoutSeconds: 30
-      #HealthyThresholdCount: 2
+      Name: NLB-TG
       Port: 80
       Protocol: TCP
-      #UnhealthyThresholdCount: 5
       VpcId:
         Fn::ImportValue:
           !Sub VPCID
       TargetGroupAttributes:
-      # - Key: stickiness.enabled
-      #   Value: 'true'
-      # - Key: stickiness.type
-      #   Value: lb_cookie
-        - Key: stickiness.lb_cookie.duration_seconds
-          Value: '30'
+        - Key: deregistration_delay.timeout_seconds
+          Value: '20'
       Targets:
       - Id:
           Fn::ImportValue:
@@ -112,12 +101,12 @@ Resources:
         LaunchTemplateId: !Ref LaunchTemplate
         Version: !GetAtt LaunchTemplate.LatestVersionNumber
       VPCZoneIdentifier:
-           Fn::ImportValue:
-            !Sub PublicSub-01
-           Fn::ImportValue:
-            !Sub PublicSub-02
-      LoadBalancerNames:
-            !Ref NetworkLoadBalancer
+          - Fn::ImportValue:
+             !Sub PublicSub-01
+          - Fn::ImportValue:
+             !Sub PublicSub-02
+      TargetGroupARNs:
+          - !Ref NLBTargetGroup
 
 
 Outputs:
